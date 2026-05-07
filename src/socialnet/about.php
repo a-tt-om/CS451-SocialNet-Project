@@ -17,7 +17,7 @@ requireLogin();
     <div class="main-content">
         <div class="page-header">
             <h1>About</h1>
-            <p>Information about the developer</p>
+            <p>Information</p>
         </div>
         <div class="card about-card">
             <div class="about-icon">
@@ -29,10 +29,6 @@ requireLogin();
             </div>
             <h2>Nguyen Ngoc Toan Thang</h2>
             <div class="student-id">Student ID: 1701830</div>
-            <p class="about-desc">
-                SocialNet — A simple social network application built with PHP, MySQL, Nginx, and Docker Compose for
-                CS451 Web Application course.
-            </p>
         </div>
     </div>
 </body>
