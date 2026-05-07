@@ -40,6 +40,17 @@ function requireLogin(): void {
 }
 
 /**
+ * Require the user to be an admin.
+ */
+function requireAdmin(): void {
+    requireLogin();
+    if (getCurrentUsername() !== 'admin') {
+        header('Location: /socialnet/index.php');
+        exit;
+    }
+}
+
+/**
  * Log in a user by setting session variables.
  */
 function loginUser(int $id, string $username, string $fullname): void {
