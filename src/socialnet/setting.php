@@ -7,15 +7,21 @@ $userId = getCurrentUserId();
 $message = '';
 $messageType = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-        $message = 'Invalid CSRF token. Please try again.';
-        $messageType = 'error';
-    } else {
-        $description = $_POST['description'] ?? '';
-        $stmt = $pdo->prepare("UPDATE account SET description = ? WHERE id = ?");
-        $stmt->execute([$description, $userId]);
+    $description = $_POST['description'] ?? '';
+    $host = getenv('DB_HOST') ?: 'mysql';
+    $db = getenv('DB_NAME') ?: 'socialnet';
+    $dbuser = getenv('DB_USER') ?: 'socialnet_user';
+    $dbpass = getenv('DB_PASS') ?: 'socialnet_pass';
+    mysqli_report(MYSQLI_REPORT_OFF);
+    $conn = new mysqli($host, $dbuser, $dbpass, $db);
+    $query = "UPDATE account SET description = '$description' WHERE id = $userId";
+    $result = $conn->query($query);
+    if ($result) {
         $message = 'Profile updated successfully!';
         $messageType = 'success';
+    } else {
+        $message = 'SQL Error: ' . $conn->error;
+        $messageType = 'error';
     }
 }
 $stmt = $pdo->prepare("SELECT description FROM account WHERE id = ?");
@@ -52,7 +58,6 @@ $description = $row['description'] ?? '';
                 Profile Description
             </div>
             <form method="POST">
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCsrfToken()) ?>">
                 <div class="form-group">
                     <label for="description">Your Bio / Description</label>
                     <textarea id="description" name="description" class="form-control" rows="6"

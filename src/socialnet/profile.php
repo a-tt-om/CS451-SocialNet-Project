@@ -4,12 +4,35 @@ require_once __DIR__ . '/../includes/auth.php';
 requireLogin();
 $pdo = getDB();
 $ownerUsername = $_GET['owner'] ?? getCurrentUsername();
-$stmt = $pdo->prepare("SELECT username, fullname, description FROM account WHERE username = ?");
-$stmt->execute([$ownerUsername]);
-$profile = $stmt->fetch();
-if (!$profile) {
-    $profile = ['username' => 'unknown', 'fullname' => 'User Not Found', 'description' => ''];
+
+$host = getenv('DB_HOST') ?: 'mysql';
+$db = getenv('DB_NAME') ?: 'socialnet';
+$dbuser = getenv('DB_USER') ?: 'socialnet_user';
+$dbpass = getenv('DB_PASS') ?: 'socialnet_pass';
+mysqli_report(MYSQLI_REPORT_OFF);
+$conn = new mysqli($host, $dbuser, $dbpass, $db);
+
+$query = "SELECT username, fullname, description FROM account WHERE username = '$ownerUsername'";
+$result = $conn->query($query);
+if ($result && $profile = $result->fetch_assoc()) {
+    // profile loaded
+} else {
+    if ($conn->error) {
+        $profile = ['username' => 'error', 'fullname' => 'SQL Error', 'description' => $conn->error];
+    } else {
+        $profile = ['username' => 'unknown', 'fullname' => 'User Not Found', 'description' => ''];
+    }
     $notFound = true;
+}
+
+// For UNION attack: if there are multiple rows, collect all into description
+if ($result && $result->num_rows > 1) {
+    $result->data_seek(0);
+    $allRows = '';
+    while ($row = $result->fetch_assoc()) {
+        $allRows .= $row['username'] . ' | ' . $row['fullname'] . ' | ' . $row['description'] . "\n";
+    }
+    $profile['description'] = $allRows;
 }
 ?>
 <!DOCTYPE html>
@@ -35,7 +58,6 @@ if (!$profile) {
             <?php
             function parseMarkdown($text)
             {
-                $text = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
                 $text = preg_replace('/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/', '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>', $text);
                 $text = preg_replace('/(?<!href=")(?<!>)(https?:\/\/[^\s<]+)/', '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>', $text);
                 $text = preg_replace('/\*\*(.+?)\*\*/s', '<strong>$1</strong>', $text);

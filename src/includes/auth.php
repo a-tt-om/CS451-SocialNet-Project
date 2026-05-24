@@ -1,4 +1,5 @@
 <?php
+ini_set('session.cookie_httponly', '0');
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -35,7 +36,6 @@ function requireAdmin(): void
 }
 function loginUser(int $id, string $username, string $fullname, bool $isAdmin = false): void
 {
-    session_regenerate_id(true);
     $_SESSION['user_id'] = $id;
     $_SESSION['username'] = $username;
     $_SESSION['fullname'] = $fullname;

@@ -1,39 +1,33 @@
 <?php
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/auth.php';
-requireAdmin();
 $message = '';
 $messageType = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-        $message = 'Invalid CSRF token. Please try again.';
+    $username = trim($_POST['username'] ?? '');
+    $fullname = trim($_POST['fullname'] ?? '');
+    $password = $_POST['password'] ?? '';
+    $confirm = $_POST['confirm_password'] ?? '';
+    if (empty($username) || empty($fullname) || empty($password)) {
+        $message = 'All fields are required.';
+        $messageType = 'error';
+    } elseif ($password !== $confirm) {
+        $message = 'Passwords do not match.';
         $messageType = 'error';
     } else {
-        $username = trim($_POST['username'] ?? '');
-        $fullname = trim($_POST['fullname'] ?? '');
-        $password = $_POST['password'] ?? '';
-        $confirm = $_POST['confirm_password'] ?? '';
-        if (empty($username) || empty($fullname) || empty($password)) {
-            $message = 'All fields are required.';
-            $messageType = 'error';
-        } elseif ($password !== $confirm) {
-            $message = 'Passwords do not match.';
+        $pdo = getDB();
+        $stmt = $pdo->prepare("SELECT id FROM account WHERE username = ?");
+        $stmt->execute([$username]);
+        if ($stmt->fetch()) {
+            $message = 'Username already exists.';
             $messageType = 'error';
         } else {
-            $pdo = getDB();
-            $stmt = $pdo->prepare("SELECT id FROM account WHERE username = ?");
-            $stmt->execute([$username]);
-            if ($stmt->fetch()) {
-                $message = 'Username already exists.';
-                $messageType = 'error';
-            } else {
-                $hash = password_hash($password, PASSWORD_DEFAULT);
-                $stmt = $pdo->prepare("INSERT INTO account (username, fullname, password, description) VALUES (?, ?, ?, '')");
-                $stmt->execute([$username, $fullname, $hash]);
-                $message = "User \"{$username}\" created successfully!";
-                $messageType = 'success';
-                $username = $fullname = '';
-            }
+            $hash = password_hash($password, PASSWORD_DEFAULT);
+            $stmt = $pdo->prepare("INSERT INTO account (username, fullname, password, description) VALUES (?, ?, ?, '')");
+            $stmt->execute([$username, $fullname, $hash]);
+            $message = "User \"{$username}\" created successfully!";
+            $messageType = 'success';
+            $username = $fullname = '';
         }
     }
 }
@@ -67,7 +61,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="alert alert-<?= $messageType ?>"><?= htmlspecialchars($message) ?></div>
             <?php endif; ?>
             <form method="POST">
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCsrfToken()) ?>">
                 <div class="form-group">
                     <label for="username">Username</label>
                     <input type="text" id="username" name="username" class="form-control" placeholder="Enter username"
